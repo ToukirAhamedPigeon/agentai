@@ -57,3 +57,9 @@ Packages Used
     6.5 types/index.d.ts
     6.6 vapi.d.ts
 7. dayjs
+8. DevIcon is a Platform where we can every developer needed Icons. 
+9. Firebase
+    9.1 Firebase Auth
+    9.2 Firebase Firestore
+    9.3 Firebase Client SDK
+    9.4 Firebase Admin SDK
