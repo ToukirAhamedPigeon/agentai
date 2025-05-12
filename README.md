@@ -44,6 +44,10 @@ Packages Used
     1.4 label
     1.5 sonner
 2. Vapi Registration
+    2.1 Created Voice Assistant
+    2.2 Created Workflow
+    2.3 Web SDK
+    2.4 npm install @vapi-ai/web
 3. Tailwind CSS 4
 4. Day JS
 5. Multple Layouts
@@ -63,3 +67,5 @@ Packages Used
     9.2 Firebase Firestore
     9.3 Firebase Client SDK
     9.4 Firebase Admin SDK
+10. https://aistudio.google.com/
+    10.1 Gemine Setup with API Key
