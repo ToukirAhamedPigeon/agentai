@@ -69,3 +69,24 @@ Packages Used
     9.4 Firebase Admin SDK
 10. https://aistudio.google.com/
     10.1 Gemine Setup with API Key
+
+Time Stamps:
+00:00:00 — Intro
+00:02:05 — Demo
+00:07:34 — Vapi Setup
+00:09:21 — Project Setup
+00:17:31 — Create Routes
+00:21:48 — Auth Pages
+00:52:05 — Home Page
+01:20:00 — Firebase Setup
+01:31:10 — Sign up & Sign In
+01:58:08 — Interview Generation UI
+02:11:17 — Google Gemini Setup
+02:13:00 — Vapi Workflow (Endpoint)
+02:30:15 — Vapi Workflow (Assistant Creation)
+02:41:39 — Vapi Agent
+02:57:00 — Show Generated Interviews
+03:10:44 — Interview Session
+03:29:57 — Create Feedback
+03:46:09 — Feedback Page and Exercises
+
