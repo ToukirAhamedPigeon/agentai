@@ -95,6 +95,9 @@ export const mappings = {
   netlify: "netlify",
   vercel: "vercel",
   "aws amplify": "amplify",
+  biology:"biology",
+  botany:"botany",
+  zoology:"zoology"
 };
 
 export const interviewer: CreateAssistantDTO = {
