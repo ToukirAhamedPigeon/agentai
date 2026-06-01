@@ -20,14 +20,6 @@ interface SavedMessage{
     content: string;
 }
 
-// Define a type for VAPI message
-interface VapiMessage {
-    type: string;
-    transcriptType?: string;
-    role?: string;
-    transcript?: string;
-}
-
 const Agent = ({userName, userId, type, interviewId, questions}: AgentProps) => {
     const router = useRouter();
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -47,21 +39,11 @@ const Agent = ({userName, userId, type, interviewId, questions}: AgentProps) => 
             setCallStatus(CallStatus.FINISHED);
         };
         
-        const onMessage = (message: VapiMessage) => {
+        const onMessage = (message: any) => {
             if (message.type === 'transcript' && message.transcriptType === 'final') {
-                // Fix: Ensure role is one of the allowed types
-                let role: 'user' | 'system' | 'assistant' = 'user';
-                if (message.role === 'assistant') {
-                    role = 'assistant';
-                } else if (message.role === 'system') {
-                    role = 'system';
-                } else {
-                    role = 'user';
-                }
-                
                 const newMessage: SavedMessage = { 
-                    role: role, 
-                    content: message.transcript || '' 
+                    role: message.role === 'assistant' ? 'assistant' : 'user', 
+                    content: message.transcript 
                 };
                 setMessages((prev) => [...prev, newMessage]);
             }
@@ -126,18 +108,18 @@ const Agent = ({userName, userId, type, interviewId, questions}: AgentProps) => 
             setCallStatus(CallStatus.CONNECTING);
             setError(null);
             
-            // Check microphone permission first
+            // Check microphone permission
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 stream.getTracks().forEach(track => track.stop());
             } catch (micError) {
-                throw new Error('Microphone access is required for the interview. Please allow microphone permissions and try again.');
+                throw new Error('Microphone access is required. Please allow microphone permissions.');
             }
             
             if (type === 'generate') {
                 const workflowId = process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID;
                 if (!workflowId) {
-                    throw new Error('VAPI workflow ID not configured');
+                    throw new Error('Workflow ID not configured');
                 }
                 
                 await vapi.start(workflowId, {
@@ -147,26 +129,19 @@ const Agent = ({userName, userId, type, interviewId, questions}: AgentProps) => 
                     },
                 });
             } else {
-                // Create a deep copy of the interviewer object
-                const assistantConfig = JSON.parse(JSON.stringify(interviewer));
+                // Use the interviewer constant and update with questions
+                const assistant = JSON.parse(JSON.stringify(interviewer));
+                const questionsText = questions?.length 
+                    ? questions.map((q, i) => `${i + 1}. ${q}`).join('\n\n')
+                    : 'Tell me about yourself.';
                 
-                // Update the system message content with questions
-                if (assistantConfig.model && assistantConfig.model.messages && assistantConfig.model.messages[0]) {
-                    const questionsText = questions?.length 
-                        ? questions.map((q, i) => `${i + 1}. ${q}`).join('\n\n')
-                        : 'Tell me about yourself and your experience.';
-                    
-                    assistantConfig.model.messages[0].content = 
-                        `You are a professional job interviewer. Ask these questions one at a time:\n\n${questionsText}\n\nKeep responses short and natural. After each answer, move to the next question.`;
+                if (assistant.model?.messages?.[0]) {
+                    assistant.model.messages[0].content = 
+                        `You are a professional interviewer. Ask these questions one at a time:\n\n${questionsText}\n\nKeep responses concise. After each answer, move to the next question.`;
+                    assistant.model.model = "gpt-3.5-turbo";
                 }
                 
-                // Ensure model is using gpt-3.5-turbo for better compatibility
-                if (assistantConfig.model) {
-                    assistantConfig.model.model = "gpt-3.5-turbo";
-                }
-                
-                console.log('Starting assistant with questions:', questions?.length);
-                await vapi.start(assistantConfig);
+                await vapi.start(assistant);
             }
         } catch (error: any) {
             console.error('Failed to start call:', error);
@@ -211,7 +186,7 @@ const Agent = ({userName, userId, type, interviewId, questions}: AgentProps) => 
                     <p className="text-sm">{error}</p>
                     <button 
                         onClick={handleCall} 
-                        className="mt-3 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                        className="mt-3 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
                     >
                         Try Again
                     </button>
@@ -221,7 +196,7 @@ const Agent = ({userName, userId, type, interviewId, questions}: AgentProps) => 
             {messages.length > 0 && callStatus === CallStatus.ACTIVE && (
                 <div className="transcript-border">
                     <div className="transcript">
-                        <p key={latestMessage} className={cn('transition-opacity duration-500 opacity-0', 'animate-fadein opacity-100')}>
+                        <p className="animate-fadein opacity-100">
                             {latestMessage}
                         </p>
                     </div>
@@ -235,15 +210,12 @@ const Agent = ({userName, userId, type, interviewId, questions}: AgentProps) => 
                         onClick={handleCall}
                         disabled={callStatus === CallStatus.CONNECTING}
                     >
-                        <span
-                            className={cn(
-                                'absolute animate-ping rounded-full opacity-75',
-                                callStatus !== CallStatus.CONNECTING && 'hidden'
-                            )}
-                        />
+                        <span className={cn(
+                            'absolute animate-ping rounded-full opacity-75',
+                            callStatus !== CallStatus.CONNECTING && 'hidden'
+                        )} />
                         <span>
-                            {callStatus === CallStatus.CONNECTING ? 'Connecting...' : 
-                             isCallInactiveOrFinished ? 'Start Interview' : 'Retry'}
+                            {callStatus === CallStatus.CONNECTING ? 'Connecting...' : 'Start Interview'}
                         </span>
                     </button>
                 ) : (
@@ -252,12 +224,6 @@ const Agent = ({userName, userId, type, interviewId, questions}: AgentProps) => 
                     </button>
                 )}
             </div>
-            
-            {callStatus === CallStatus.ACTIVE && (
-                <div className="text-center text-sm text-gray-500 mt-4">
-                    Interview in progress. Speak naturally with the AI interviewer.
-                </div>
-            )}
         </>
     );
 }
