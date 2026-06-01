@@ -88,45 +88,30 @@ const Agent = ({userName,userId,type,interviewId, questions}:AgentProps) => {
 
     const handleCall = async () => {
         setCallStatus(CallStatus.CONNECTING);
-        
-        try {
-            if (type === 'generate') {
-                // For generating interviews - make sure NEXT_PUBLIC_VAPI_WORKFLOW_ID is set
-                const workflowId = process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID;
-                if (!workflowId) {
-                    console.error('VAPI workflow ID not found');
-                    return;
-                }
-                
-                await vapi.start(workflowId, {
-                    variableValues: {
-                        username: userName,
-                        userid: userId,
-                    },
-                    // Remove clientMessages and serverMessages or set to undefined
-                });
-            } else {
-                // For conducting interviews
-                let formattedQuestions = '';
-                if (questions && questions.length > 0) {
-                    formattedQuestions = questions
-                        .map((question) => `- ${question}`)
-                        .join('\n');
-                }
-                
-                // Make sure interviewer constant is properly configured
-                await vapi.start(interviewer, {
-                    variableValues: {
-                        questions: formattedQuestions,
-                        username: userName,
-                    },
-                });
+        if(type==='generate'){
+            await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
+                variableValues:{
+                    username : userName,
+                    userid: userId,
+                },
+                clientMessages: [],
+                serverMessages: []
+            })
+        } else{
+            let formattedQuestions = '';
+            if(questions){
+                formattedQuestions = questions
+                    .map((question)=>`- ${question}`).join('\n');
             }
-        } catch (error) {
-            console.error('Error starting VAPI call:', error);
-            setCallStatus(CallStatus.INACTIVE);
+            await vapi.start(interviewer,{
+                variableValues:{
+                    questions:formattedQuestions
+                },
+                clientMessages: [],
+                serverMessages: []
+            })
         }
-    };
+    }
     const handleDisconnect = async () => {
         setCallStatus(CallStatus.FINISHED);
         vapi.stop();
