@@ -109,43 +109,53 @@ const Agent = ({userName, userId, type, interviewId, questions}: AgentProps) => 
             setError(null);
             
             // Check microphone permission
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                stream.getTracks().forEach(track => track.stop());
-            } catch (micError) {
-                throw new Error('Microphone access is required. Please allow microphone permissions.');
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop());
+            
+            // Minimal working assistant configuration with proper literal types
+            const minimalAssistant = {
+                name: "Interviewer",
+                firstMessage: "Hello! Can you hear me clearly?",
+                transcriber: {
+                    provider: "deepgram" as const,
+                    model: "nova-2" as const,
+                    language: "en" as const
+                },
+                voice: {
+                    provider: "11labs" as const,
+                    voiceId: "21m00Tcm4TlvDq8ikWAM" as const,
+                    stability: 0.4,
+                    similarityBoost: 0.8,
+                    speed: 0.9,
+                    style: 0.5,
+                    useSpeakerBoost: true
+                },
+                model: {
+                    provider: "openai" as const,
+                    model: "gpt-3.5-turbo" as const,
+                    temperature: 0.7,
+                    messages: [
+                        {
+                            role: "system" as const,
+                            content: "You are a helpful interviewer. Ask one question at a time and keep responses brief."
+                        }
+                    ]
+                }
+            };
+            
+            // Add questions if provided
+            if (questions && questions.length > 0) {
+                const questionsText = questions.join('\n');
+                minimalAssistant.model.messages[0].content = 
+                    `You are a professional interviewer. Ask these questions one at a time:\n${questionsText}\n\nKeep responses short and natural.`;
             }
             
-            if (type === 'generate') {
-                const workflowId = process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID;
-                if (!workflowId) {
-                    throw new Error('Workflow ID not configured');
-                }
-                
-                await vapi.start(workflowId, {
-                    variableValues: {
-                        username: userName,
-                        userid: userId,
-                    },
-                });
-            } else {
-                // Use the interviewer constant and update with questions
-                const assistant = JSON.parse(JSON.stringify(interviewer));
-                const questionsText = questions?.length 
-                    ? questions.map((q, i) => `${i + 1}. ${q}`).join('\n\n')
-                    : 'Tell me about yourself.';
-                
-                if (assistant.model?.messages?.[0]) {
-                    assistant.model.messages[0].content = 
-                        `You are a professional interviewer. Ask these questions one at a time:\n\n${questionsText}\n\nKeep responses concise. After each answer, move to the next question.`;
-                    assistant.model.model = "gpt-3.5-turbo";
-                }
-                
-                await vapi.start(assistant);
-            }
+            console.log('Starting call with minimal assistant');
+            await vapi.start(minimalAssistant);
+            
         } catch (error: any) {
             console.error('Failed to start call:', error);
-            setError(error.message || 'Failed to start the interview. Please try again.');
+            setError(error.message);
             setCallStatus(CallStatus.INACTIVE);
         }
     };
