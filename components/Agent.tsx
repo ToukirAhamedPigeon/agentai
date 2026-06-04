@@ -92,7 +92,7 @@ const Agent = ({userName,userId,type,interviewId, questions}:AgentProps) => {
             console.log('userName', userName, userId);
             await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
                 variableValues:{
-                    'global.username' : userName,
+                    name : userName,
                     userid: userId,
                 },
                 clientMessages: [] as any,

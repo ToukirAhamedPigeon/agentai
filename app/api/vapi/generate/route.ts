@@ -1,14 +1,15 @@
-import {generateText} from "ai";
-import {google} from "@ai-sdk/google"
+import { groq } from '@ai-sdk/groq';
+import { generateText } from "ai";
+// import { openai } from "@ai-sdk/openai";
 import { getRandomInterviewCover } from "@/lib/utils";
 import { db } from "@/firebase/admin";
 
-export async function POST(request: Request){
-    const {type, role, level, techstack, amount, userid } = await request.json();
+export async function POST(request: Request) {
+    const { type, role, level, techstack, amount, userid } = await request.json();
 
     try {
-        const { text:questions } = await generateText({
-            model: google('gemini-2.0-flash-lite-001'),
+        const { text: questions } = await generateText({
+            model: groq('llama-3.3-70b-versatile'),
             prompt: `Prepare questions for a job interview.
                 The job role is ${role}.
                 The job experience level is ${level}.
@@ -24,23 +25,52 @@ export async function POST(request: Request){
             `
         });
 
+        // Parse questions with error handling
+        let parsedQuestions;
+        try {
+            // Clean the response - remove markdown code blocks if present
+            let cleanedQuestions = questions.trim();
+            if (cleanedQuestions.startsWith('```json')) {
+                cleanedQuestions = cleanedQuestions.replace(/```json\n?/, '').replace(/\n?```$/, '');
+            } else if (cleanedQuestions.startsWith('```')) {
+                cleanedQuestions = cleanedQuestions.replace(/```\n?/, '').replace(/\n?```$/, '');
+            }
+            parsedQuestions = JSON.parse(cleanedQuestions);
+            
+            if (!Array.isArray(parsedQuestions)) {
+                throw new Error('Response is not an array');
+            }
+        } catch (parseError) {
+            console.error('Failed to parse questions, using fallback:', questions);
+            // Fallback: Create array from lines
+            const lines = questions.split('\n').filter(line => line.trim().length > 0);
+            parsedQuestions = lines
+                .filter(line => !line.match(/^(Here|Sure|Certainly|Below|Following)/i))
+                .map(line => line.replace(/^\d+[\.\)]\s*/, '').trim())
+                .filter(q => q.length > 0 && q !== '""' && !q.includes('```'));
+        }
+
         const interview = {
-            role, type, level, 
+            role, 
+            type, 
+            level, 
             techstack: techstack.split(','),
-            questions: JSON.parse(questions),
+            questions: parsedQuestions.slice(0, parseInt(amount)),
             userId: userid,
             finalized: true,
             coverImage: getRandomInterviewCover(),
             createdAt: new Date().toISOString()
         }
+        
         await db.collection("interviews").add(interview);
-        return Response.json({success:true},{status:200});
+        return Response.json({ success: true }, { status: 200 });
+        
     } catch (error) {
-        console.log(error);
-        return Response.json({success:false, error}, {status:500});
+        console.error('Error generating interview:', error);
+        return Response.json({ success: false, error }, { status: 500 });
     }
 }
 
-export async function GET(){
-    return Response.json({success:true, data:'THANK YOU'}, {status:200});
+export async function GET() {
+    return Response.json({ success: true, data: 'THANK YOU' }, { status: 200 });
 }
