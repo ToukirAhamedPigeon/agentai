@@ -91,7 +91,7 @@ const Agent = ({userName,userId,type,interviewId, questions}:AgentProps) => {
         if(type==='generate'){
             await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
                 variableValues:{
-                    username : userName,
+                    sir : userName,
                     userid: userId,
                 },
                 clientMessages: [] ,
