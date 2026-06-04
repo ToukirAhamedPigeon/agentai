@@ -176,8 +176,8 @@ export const interviewer: CreateAssistantDTO = {
       //           },
     ],
   },
-  clientMessages: [] as any,
-  serverMessages: [] as any,
+  clientMessages: [],
+  serverMessages: [],
 };
 
 export const feedbackSchema = z.object({
